@@ -2,18 +2,25 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const text = body.text || "";
-    if (!text.trim()) return NextResponse.json({ error: "No text" }, { status: 400 });
+    const { text } = await req.json();
+    if (!text?.trim()) return NextResponse.json({ error: "No text" }, { status: 400 });
+
+    // Smart demo logic - checks for AI patterns
+    let score = 0.2;
+    const lower = text.toLowerCase();
     
-    // DEMO MODE - always works, no token needed
-    const score = text.length > 150 ? 0.85 : 0.15;
-    return NextResponse.json({ 
-      score: score, 
-      label: score > 0.5 ? "AI Likely" : "Human Likely",
-      demo: true 
+    if (lower.includes("as an ai") || lower.includes("in conclusion") || lower.includes("delve") || lower.includes("moreover") || lower.includes("tapestry") || lower.includes("landscape")) score += 0.4;
+    if (text.split(".").length > 5 && text.length > 200) score += 0.3;
+    if (/(utilize|furthermore|additionally|embark|realm)/.test(lower)) score += 0.2;
+    
+    score = Math.min(0.95, Math.max(0.05, score + Math.random() * 0.15));
+    
+    return NextResponse.json({
+      score,
+      label: score > 0.6 ? "Likely AI" : "Likely Human",
+      confidence: Math.round(score * 100)
     });
   } catch (e) {
-    return NextResponse.json({ score: 0.5, label: "Human Likely", demo: true });
+    return NextResponse.json({ score: 0.5, label: "Error" }, { status: 500 });
   }
 }
